@@ -819,12 +819,12 @@ input, textarea {
     justify-content: center;
     align-items: center;
     font-family: 'Orbitron', monospace;
-    overflow: hidden;
-}
+    }
 
 .data-connection-container {
     text-align: center;
     max-width: 600px;
+    max-height: 100vh;
     padding: 50px;
     background: rgba(255, 255, 255, 0.02);
     border: 2px solid transparent;
@@ -832,6 +832,8 @@ input, textarea {
     backdrop-filter: blur(30px);
     position: relative;
     animation: containerPulse 3s ease-in-out infinite alternate;
+    overflow: hidden;
+    overflow-y: auto;
 }
 
 .data-connection-container::before {
@@ -1106,6 +1108,241 @@ input, textarea {
         opacity: 0;
     }
 }
+
+.screenshot-protection-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: #000000;
+    color: #ff0000;
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 999999;
+    font-family: 'Orbitron', monospace;
+    font-size: 3rem;
+    text-align: center;
+    animation: glitchEffect 0.5s infinite;
+}
+
+@keyframes glitchEffect {
+    0% { transform: translate(0); filter: hue-rotate(0deg); }
+    20% { transform: translate(-2px, 2px); filter: hue-rotate(90deg); }
+    40% { transform: translate(-2px, -2px); filter: hue-rotate(180deg); }
+    60% { transform: translate(2px, 2px); filter: hue-rotate(270deg); }
+    80% { transform: translate(2px, -2px); filter: hue-rotate(360deg); }
+    100% { transform: translate(0); filter: hue-rotate(0deg); }
+}
+
+/* User Account Modal Styles */
+.account-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.9);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+    backdrop-filter: blur(20px);
+}
+
+.account-container {
+    background: linear-gradient(135deg, var(--bg-darker), var(--bg-dark));
+    border: 2px solid var(--primary-glow);
+    border-radius: 20px;
+    padding: 40px;
+    max-width: 500px;
+    width: 90%;
+    text-align: center;
+    position: relative;
+    animation: modalSlideIn 0.5s ease;
+}
+
+@keyframes modalSlideIn {
+    from { transform: translateY(-50px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.account-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 2rem;
+    margin-bottom: 30px;
+    background: linear-gradient(45deg, var(--primary-glow), var(--secondary-glow));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.account-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.account-input {
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--glass-border);
+    border-radius: 10px;
+    color: white;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.account-input:focus {
+    outline: none;
+    border-color: var(--primary-glow);
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+}
+
+.account-btn {
+    padding: 15px 30px;
+    background: linear-gradient(45deg, var(--primary-glow), var(--secondary-glow));
+    border: none;
+    border-radius: 50px;
+    color: var(--bg-dark);
+    font-size: 1.1rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.account-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(0, 255, 255, 0.3);
+}
+
+.profile-picture-upload {
+    position: relative;
+    margin: 20px 0;
+}
+
+.profile-preview {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    border: 3px solid var(--primary-glow);
+    margin: 0 auto 15px;
+    background: var(--glass-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.profile-preview:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+}
+
+.file-input {
+    display: none;
+}
+
+.user-info-display {
+    display: none;
+    text-align: center;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 15px;
+    margin: 20px 0;
+}
+
+.user-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    border: 2px solid var(--primary-glow);
+    margin: 0 auto 15px;
+}
+
+.logout-btn {
+    background: linear-gradient(45deg, #ff4444, #cc0000);
+    margin-top: 15px;
+}
+
+/* Account Button in Header */
+.account-header-btn {
+    background: linear-gradient(45deg, var(--primary-glow), var(--secondary-glow));
+    border: none;
+    padding: 10px 20px;
+    border-radius: 25px;
+    color: var(--bg-dark);
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-left: 20px;
+}
+
+.account-header-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 255, 255, 0.3);
+}
+
+/* Protection Active Indicator */
+.protection-indicator {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: linear-gradient(45deg, #ff0000, #cc0000);
+    color: white;
+    padding: 10px 15px;
+    border-radius: 25px;
+    font-size: 0.9rem;
+    font-weight: bold;
+    z-index: 1000;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 0.8; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.05); }
+}
+
+/* Hide content during screenshot attempts */
+@media print {
+    body * { visibility: hidden !important; }
+    body::before {
+        content: "🚫 PROTECTED CONTENT - SCREENSHOTS BLOCKED 🚫";
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 3rem;
+        color: red;
+        visibility: visible !important;
+        z-index: 999999;
+    }
+}
+
+/* Disable text selection and dragging */
+* {
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    user-select: none !important;
+    -webkit-touch-callout: none !important;
+    -webkit-tap-highlight-color: transparent !important;
+    -webkit-user-drag: none !important;
+    -khtml-user-drag: none !important;
+    -moz-user-drag: none !important;
+    -o-user-drag: none !important;
+    user-drag: none !important;
+}
+
+/* Re-enable selection for form inputs */
+input, textarea, [contenteditable="true"] {
+    -webkit-user-select: text !important;
+    -moz-user-select: text !important;
+    -ms-user-select: text !important;
+    user-select: text !important;
+}
     </style>
 </head>
 <body>
@@ -1129,6 +1366,50 @@ input, textarea {
             <a class="nav-item" onclick="scrollToSection('contact')">Contact</a>
         </nav>
     </header>
+    <div class="screenshot-protection-overlay" id="screenshotOverlay">
+    <div>
+        🚫 SCREENSHOT BLOCKED 🚫<br>
+        <div style="font-size: 1.5rem; margin-top: 20px;">
+            Content is protected from unauthorized capture
+        </div>
+    </div>
+</div>
+
+<div class="account-modal" id="accountModal">
+    <div class="account-container">
+        <h2 class="account-title" id="modalTitle">Create Account</h2>
+        
+        <div id="loginForm" class="account-form">
+            <div class="profile-picture-upload">
+                <div class="profile-preview" id="profilePreview" onclick="document.getElementById('profilePicture').click()">
+                    📷
+                </div>
+                <input type="file" id="profilePicture" class="file-input" accept="image/*" onchange="handleProfilePicture(event)">
+                <p style="font-size: 0.9rem; opacity: 0.8;">Click to upload profile picture</p>
+            </div>
+            
+            <input type="text" id="username" class="account-input" placeholder="Username" required>
+            <input type="email" id="email" class="account-input" placeholder="Email" required>
+            <input type="password" id="password" class="account-input" placeholder="Password" required>
+            
+            <button type="button" class="account-btn" onclick="createAccount()">Create Account</button>
+            <button type="button" class="account-btn" onclick="loginAccount()" style="background: linear-gradient(45deg, #4CAF50, #45a049);">Login</button>
+            <button type="button" class="account-btn logout-btn" onclick="closeAccountModal()">Cancel</button>
+        </div>
+        
+        <div id="userInfo" class="user-info-display">
+            <img id="userAvatar" class="user-avatar" src="" alt="Profile">
+            <h3 id="displayUsername"></h3>
+            <p id="displayEmail"></p>
+            <p style="font-size: 0.9rem; opacity: 0.8; margin-top: 10px;">Account created: <span id="accountCreated"></span></p>
+            <button type="button" class="account-btn logout-btn" onclick="logoutAccount()">Logout</button>
+        </div>
+    </div>
+</div>
+
+<div class="protection-indicator">
+    🛡️ Screenshot Protection Active
+</div>
     
     <section class="hero" id="home">
         <div class="hero-content">

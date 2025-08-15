@@ -1665,3 +1665,537 @@ async function sendDataConnectionNotification(type, data) {
 }
 
 console.log('%c📡 Mobile Data Detection System Loaded', 'color: #00ffff; font-size: 14px; font-weight: bold;');
+
+
+
+
+
+// ==================== ADVANCED SCREENSHOT & SCREEN RECORDING PROTECTION ====================
+
+(function() {
+    'use strict';
+    
+    let protectionActive = true;
+    let screenshotAttempts = 0;
+    let lastScreenshotTime = 0;
+    let protectionOverlay = null;
+    
+    // Initialize protection overlay
+    function initProtectionOverlay() {
+        protectionOverlay = document.getElementById('screenshotOverlay');
+    }
+    
+    // Show screenshot blocked overlay
+    function showScreenshotBlocked() {
+        if (protectionOverlay) {
+            protectionOverlay.style.display = 'flex';
+            
+            // Send alert to owner
+            sendSecurityAlert('screenshot_attempt', {
+                attempts: ++screenshotAttempts,
+                timestamp: new Date().toISOString(),
+                userAgent: navigator.userAgent,
+                url: window.location.href
+            });
+            
+            // Hide after 3 seconds
+            setTimeout(() => {
+                protectionOverlay.style.display = 'none';
+            }, 3000);
+        }
+    }
+    
+    // Advanced screenshot detection
+    function detectScreenshotAttempt() {
+        const now = Date.now();
+        
+        // Prevent rapid detection
+        if (now - lastScreenshotTime < 1000) return;
+        lastScreenshotTime = now;
+        
+        // Show blocked overlay
+        showScreenshotBlocked();
+        
+        // Replace page content temporarily
+        const originalContent = document.body.innerHTML;
+        document.body.innerHTML = `
+            <div style="
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                background: #000000;
+                color: #ff0000;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                font-family: 'Orbitron', monospace;
+                font-size: 3rem;
+                text-align: center;
+                z-index: 999999;
+            ">
+                🚫 CONTENT PROTECTED 🚫<br>
+                <div style="font-size: 1.5rem; margin-top: 20px;">
+                    Screenshot blocked by DreamArch Security
+                </div>
+            </div>
+        `;
+        
+        // Restore content after brief delay
+        setTimeout(() => {
+            document.body.innerHTML = originalContent;
+            // Reinitialize everything
+            initializeProtection();
+            initializeAccountSystem();
+        }, 2000);
+    }
+    
+    // Detect Print Screen key
+    document.addEventListener('keydown', function(e) {
+        if (e.keyCode === 44 || e.key === 'PrintScreen') {
+            e.preventDefault();
+            detectScreenshotAttempt();
+            return false;
+        }
+        
+        // Block other screenshot shortcuts
+        if (
+            (e.ctrlKey && e.shiftKey && e.keyCode === 83) || // Ctrl+Shift+S
+            (e.ctrlKey && e.keyCode === 80) || // Ctrl+P
+            (e.altKey && e.keyCode === 44) // Alt+PrintScreen
+        ) {
+            e.preventDefault();
+            detectScreenshotAttempt();
+            return false;
+        }
+    });
+    
+    // Detect Print Screen key release
+    document.addEventListener('keyup', function(e) {
+        if (e.keyCode === 44 || e.key === 'PrintScreen') {
+            detectScreenshotAttempt();
+        }
+    });
+    
+    // Detect window focus changes (screenshot tools)
+    let windowFocused = true;
+    
+    window.addEventListener('blur', function() {
+        windowFocused = false;
+        // Hide content when window loses focus
+        document.body.style.visibility = 'hidden';
+        
+        setTimeout(() => {
+            if (!windowFocused) {
+                detectScreenshotAttempt();
+            }
+        }, 100);
+    });
+    
+    window.addEventListener('focus', function() {
+        windowFocused = true;
+        document.body.style.visibility = 'visible';
+    });
+    
+    // Detect visibility changes (mobile screenshot)
+    document.addEventListener('visibilitychange', function() {
+        if (document.hidden) {
+            document.body.style.visibility = 'hidden';
+            setTimeout(() => {
+                if (document.hidden) {
+                    detectScreenshotAttempt();
+                }
+            }, 100);
+        } else {
+            document.body.style.visibility = 'visible';
+        }
+    });
+    
+    // Mobile-specific screenshot detection
+    if (/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+        // Detect volume down + power button (Android)
+        let volumePressed = false;
+        let powerPressed = false;
+        
+        document.addEventListener('keydown', function(e) {
+            if (e.keyCode === 114) volumePressed = true; // Volume Down
+            if (e.keyCode === 116) powerPressed = true; // Power Button
+            
+            if (volumePressed && powerPressed) {
+                detectScreenshotAttempt();
+                volumePressed = false;
+                powerPressed = false;
+            }
+        });
+        
+        document.addEventListener('keyup', function(e) {
+            if (e.keyCode === 114) volumePressed = false;
+            if (e.keyCode === 116) powerPressed = false;
+        });
+        
+        // Detect three-finger screenshot (iOS)
+        let touchCount = 0;
+        
+        document.addEventListener('touchstart', function(e) {
+            touchCount = e.touches.length;
+            if (touchCount >= 3) {
+                detectScreenshotAttempt();
+            }
+        });
+    }
+    
+    // Detect screen recording attempts
+    function detectScreenRecording() {
+        // Check for screen recording APIs
+        if (navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
+            const originalGetDisplayMedia = navigator.mediaDevices.getDisplayMedia;
+            
+            navigator.mediaDevices.getDisplayMedia = function() {
+                detectScreenshotAttempt();
+                sendSecurityAlert('screen_recording_attempt', {
+                    timestamp: new Date().toISOString(),
+                    userAgent: navigator.userAgent
+                });
+                
+                // Block the recording
+                return Promise.reject(new Error('Screen recording blocked by DreamArch Security'));
+            };
+        }
+        
+        // Detect WebRTC screen sharing
+        if (window.RTCPeerConnection) {
+            const originalCreateOffer = RTCPeerConnection.prototype.createOffer;
+            
+            RTCPeerConnection.prototype.createOffer = function(options) {
+                if (options && options.offerToReceiveVideo) {
+                    detectScreenshotAttempt();
+                    sendSecurityAlert('screen_sharing_attempt', {
+                        timestamp: new Date().toISOString()
+                    });
+                }
+                return originalCreateOffer.call(this, options);
+            };
+        }
+    }
+    
+    // Send security alerts to owner
+    async function sendSecurityAlert(type, data) {
+        try {
+            const alertData = {
+                type: 'security_alert',
+                alertType: type,
+                data: data,
+                timestamp: new Date().toISOString(),
+                userInfo: {
+                    userAgent: navigator.userAgent,
+                    url: window.location.href,
+                    referrer: document.referrer,
+                    screenResolution: `${screen.width}x${screen.height}`,
+                    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                }
+            };
+            
+            // Send to your notification system
+            if (typeof sendNotificationToOwner === 'function') {
+                await sendNotificationToOwner('security_alert', alertData);
+            }
+            
+            console.log('🚨 Security Alert:', type, data);
+        } catch (error) {
+            console.log('Security system active');
+        }
+    }
+    
+    // Initialize protection
+    function initializeProtection() {
+        initProtectionOverlay();
+        detectScreenRecording();
+        
+        // Disable right-click
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            detectScreenshotAttempt();
+            return false;
+        });
+        
+        // Disable drag and drop
+        document.addEventListener('dragstart', function(e) {
+            e.preventDefault();
+            return false;
+        });
+        
+        // Disable text selection
+        document.addEventListener('selectstart', function(e) {
+            if (!e.target.matches('input, textarea, [contenteditable="true"]')) {
+                e.preventDefault();
+                return false;
+            }
+        });
+        
+        // Clear clipboard periodically
+        setInterval(() => {
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText('🚫 Content protected by DreamArch Security');
+            }
+        }, 5000);
+        
+        console.log('🛡️ Advanced Screenshot Protection Active');
+    }
+    
+    // Initialize when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializeProtection);
+    } else {
+        initializeProtection();
+    }
+    
+})();
+
+// ==================== USER ACCOUNT SYSTEM ====================
+
+let currentUser = null;
+let userAccounts = JSON.parse(localStorage.getItem('dreamarch_accounts') || '{}');
+
+// Initialize account system
+function initializeAccountSystem() {
+    // Check if user is already logged in
+    const savedUser = localStorage.getItem('dreamarch_current_user');
+    if (savedUser) {
+        currentUser = JSON.parse(savedUser);
+        updateHeaderForLoggedInUser();
+    } else {
+        addAccountButtonToHeader();
+    }
+}
+
+// Add account button to header
+function addAccountButtonToHeader() {
+    const nav = document.querySelector('.nav');
+    if (nav && !document.getElementById('accountHeaderBtn')) {
+        const accountBtn = document.createElement('button');
+        accountBtn.id = 'accountHeaderBtn';
+        accountBtn.className = 'account-header-btn';
+        accountBtn.textContent = '👤 Account';
+        accountBtn.onclick = openAccountModal;
+        nav.appendChild(accountBtn);
+    }
+}
+
+// Update header for logged in user
+function updateHeaderForLoggedInUser() {
+    const nav = document.querySelector('.nav');
+    const existingBtn = document.getElementById('accountHeaderBtn');
+    
+    if (existingBtn) {
+        existingBtn.textContent = `👤 ${currentUser.username}`;
+        existingBtn.onclick = openAccountModal;
+    }
+}
+
+// Open account modal
+function openAccountModal() {
+    const modal = document.getElementById('accountModal');
+    const loginForm = document.getElementById('loginForm');
+    const userInfo = document.getElementById('userInfo');
+    
+    if (currentUser) {
+        // Show user info
+        loginForm.style.display = 'none';
+        userInfo.style.display = 'block';
+        
+        document.getElementById('userAvatar').src = currentUser.profilePicture || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iNTAiIGN5PSI1MCIgcj0iNTAiIGZpbGw9IiMwMGZmZmYiLz48dGV4dCB4PSI1MCIgeT0iNTUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSI0MCIgZmlsbD0iIzBhMGEwZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+8J+RpDwvdGV4dD48L3N2Zz4=';
+        document.getElementById('displayUsername').textContent = currentUser.username;
+        document.getElementById('displayEmail').textContent = currentUser.email;
+        document.getElementById('accountCreated').textContent = new Date(currentUser.createdAt).toLocaleDateString();
+        document.getElementById('modalTitle').textContent = 'My Account';
+    } else {
+        // Show login form
+        loginForm.style.display = 'flex';
+        userInfo.style.display = 'none';
+        document.getElementById('modalTitle').textContent = 'Create Account';
+    }
+    
+    modal.style.display = 'flex';
+}
+
+// Close account modal
+function closeAccountModal() {
+    document.getElementById('accountModal').style.display = 'none';
+}
+
+// Handle profile picture upload
+function handleProfilePicture(event) {
+    const file = event.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const preview = document.getElementById('profilePreview');
+            preview.innerHTML = `<img src="${e.target.result}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
+            preview.dataset.image = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+// Create new account
+async function createAccount() {
+    const username = document.getElementById('username').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const profilePicture = document.getElementById('profilePreview').dataset.image;
+    
+    if (!username || !email || !password) {
+        alert('Please fill in all fields');
+        return;
+    }
+    
+    // Check if user already exists
+    if (userAccounts[email]) {
+        alert('Account with this email already exists');
+        return;
+    }
+    
+    // Create new user
+    const newUser = {
+        username: username,
+        email: email,
+        password: btoa(password), // Simple encoding (use proper hashing in production)
+        profilePicture: profilePicture || null,
+        createdAt: new Date().toISOString(),
+        lastLogin: new Date().toISOString()
+    };
+    
+    // Save to storage
+    userAccounts[email] = newUser;
+    localStorage.setItem('dreamarch_accounts', JSON.stringify(userAccounts));
+    
+    // Log in the user
+    currentUser = newUser;
+    localStorage.setItem('dreamarch_current_user', JSON.stringify(currentUser));
+    
+    // Send notification to owner
+    await sendAccountNotification('new_account_created', {
+        username: username,
+        email: email,
+        timestamp: new Date().toISOString()
+    });
+    
+    // Update UI
+    updateHeaderForLoggedInUser();
+    closeAccountModal();
+    
+    if (typeof showNotification === 'function') {
+        showNotification(`Welcome ${username}! Account created successfully.`, 'success');
+    }
+}
+
+// Login to existing account
+async function loginAccount() {
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    
+    if (!email || !password) {
+        alert('Please enter email and password');
+        return;
+    }
+    
+    // Check if account exists
+    const user = userAccounts[email];
+    if (!user || atob(user.password) !== password) {
+        alert('Invalid email or password');
+        return;
+    }
+    
+    // Update last login
+    user.lastLogin = new Date().toISOString();
+    userAccounts[email] = user;
+    localStorage.setItem('dreamarch_accounts', JSON.stringify(userAccounts));
+    
+    // Log in the user
+    currentUser = user;
+    localStorage.setItem('dreamarch_current_user', JSON.stringify(currentUser));
+    
+    // Send notification to owner
+    await sendAccountNotification('user_login', {
+        username: user.username,
+        email: email,
+        timestamp: new Date().toISOString()
+    });
+    
+    // Update UI
+    updateHeaderForLoggedInUser();
+    closeAccountModal();
+    
+    if (typeof showNotification === 'function') {
+        showNotification(`Welcome back ${user.username}!`, 'success');
+    }
+}
+
+// Logout user
+async function logoutAccount() {
+    if (currentUser) {
+        await sendAccountNotification('user_logout', {
+            username: currentUser.username,
+            email: currentUser.email,
+            timestamp: new Date().toISOString()
+        });
+    }
+    
+    currentUser = null;
+    localStorage.removeItem('dreamarch_current_user');
+    
+    // Reset header
+    const accountBtn = document.getElementById('accountHeaderBtn');
+    if (accountBtn) {
+        accountBtn.textContent = '👤 Account';
+        accountBtn.onclick = openAccountModal;
+    }
+    
+    closeAccountModal();
+    
+    if (typeof showNotification === 'function') {
+        showNotification('Logged out successfully', 'info');
+    }
+}
+
+// Send account notifications to owner
+async function sendAccountNotification(type, data) {
+    try {
+        const notificationData = {
+            type: 'account_activity',
+            activityType: type,
+            data: data,
+            timestamp: new Date().toISOString(),
+            userInfo: {
+                userAgent: navigator.userAgent,
+                url: window.location.href,
+                referrer: document.referrer
+            }
+        };
+        
+        if (typeof sendNotificationToOwner === 'function') {
+            await sendNotificationToOwner('account_activity', notificationData);
+        }
+        
+        console.log('👤 Account Activity:', type, data);
+    } catch (error) {
+        console.log('Account system active');
+    }
+}
+
+// Initialize account system when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    initializeAccountSystem();
+});
+
+// Make functions globally available
+window.openAccountModal = openAccountModal;
+window.closeAccountModal = closeAccountModal;
+window.handleProfilePicture = handleProfilePicture;
+window.createAccount = createAccount;
+window.loginAccount = loginAccount;
+window.logoutAccount = logoutAccount;
+
+console.log('👤 User Account System Loaded');
+console.log('🛡️ Advanced Protection System Active');
