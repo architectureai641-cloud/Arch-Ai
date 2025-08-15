@@ -1121,3 +1121,547 @@ setInterval(function() {
 }, 10000); // Every 10 seconds instead of 5
 
 console.log('%c🛡️ Smart Protection System Loaded', 'color: #00ff00; font-size: 12px;');
+ // Mobile Data Detection System
+        class MobileDataDetector {
+            constructor() {
+                this.isOnline = navigator.onLine;
+                this.connectionType = null;
+                this.checkInterval = null;
+                this.init();
+            }
+
+            init() {
+                // Initial connection check
+                this.checkConnection();
+                
+                // Set up event listeners
+                window.addEventListener('online', () => this.handleOnline());
+                window.addEventListener('offline', () => this.handleOffline());
+                
+                // Continuous monitoring
+                this.startMonitoring();
+                
+                // Check connection type if available
+                this.detectConnectionType();
+            }
+
+            async checkConnection() {
+                try {
+                    // Test connection with a small request
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 5000);
+                    
+                    const response = await fetch('https://www.google.com/favicon.ico', {
+                        method: 'HEAD',
+                        mode: 'no-cors',
+                        cache: 'no-cache',
+                        signal: controller.signal
+                    });
+                    
+                    clearTimeout(timeoutId);
+                    
+                    // Check if we're using mobile data
+                    const isMobileData = await this.isMobileDataConnection();
+                    
+                    if (isMobileData) {
+                        this.handleOnline();
+                    } else {
+                        this.handleOffline();
+                    }
+                    
+                } catch (error) {
+                    console.log('Connection check failed:', error);
+                    this.handleOffline();
+                }
+            }
+
+            async isMobileDataConnection() {
+                // Check if Network Information API is available
+                if ('connection' in navigator) {
+                    const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+                    
+                    if (connection) {
+                        // Mobile data connection types
+                        const mobileTypes = ['cellular', '2g', '3g', '4g', '5g'];
+                        const connectionType = connection.effectiveType || connection.type;
+                        
+                        console.log('Connection type:', connectionType);
+                        
+                        // Check if it's a mobile connection
+                        return mobileTypes.some(type => 
+                            connectionType && connectionType.toLowerCase().includes(type)
+                        ) || connection.type === 'cellular';
+                    }
+                }
+                
+                // Fallback: Check user agent for mobile devices
+                const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                
+                // If it's a mobile device and online, assume mobile data
+                return isMobileDevice && navigator.onLine;
+            }
+
+            detectConnectionType() {
+                if ('connection' in navigator) {
+                    const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+                    
+                    if (connection) {
+                        this.connectionType = connection.effectiveType || connection.type;
+                        
+                        // Listen for connection changes
+                        connection.addEventListener('change', () => {
+                            this.connectionType = connection.effectiveType || connection.type;
+                            this.checkConnection();
+                        });
+                    }
+                }
+            }
+
+            handleOnline() {
+                console.log('Mobile data connection detected');
+                this.isOnline = true;
+                this.showMainContent();
+                this.updateConnectionStatus(true);
+            }
+
+            handleOffline() {
+                console.log('Mobile data connection lost');
+                this.isOnline = false;
+                this.showOfflineOverlay();
+                this.updateConnectionStatus(false);
+            }
+
+            showMainContent() {
+                const overlay = document.getElementById('offlineOverlay');
+                const mainContent = document.getElementById('mainContent');
+                
+                overlay.style.display = 'none';
+                mainContent.classList.remove('blur-content');
+                
+                // Show success notification
+                this.showNotification('✅ Mobile data connected! Website is now active.', 'success');
+            }
+
+            showOfflineOverlay() {
+                const overlay = document.getElementById('offlineOverlay');
+                const mainContent = document.getElementById('mainContent');
+                
+                overlay.style.display = 'flex';
+                mainContent.classList.add('blur-content');
+            }
+
+            updateConnectionStatus(isOnline) {
+                const statusElement = document.getElementById('connectionStatus');
+                
+                if (isOnline) {
+                    statusElement.className = 'connection-status status-online';
+                    statusElement.innerHTML = '📶 Mobile Data Connected';
+                } else {
+                    statusElement.className = 'connection-status status-offline';
+                    statusElement.innerHTML = '📵 No Mobile Data';
+                }
+            }
+
+            startMonitoring() {
+                // Check connection every 10 seconds
+                this.checkInterval = setInterval(() => {
+                    this.checkConnection();
+                }, 10000);
+            }
+
+            stopMonitoring() {
+                if (this.checkInterval) {
+                    clearInterval(this.checkInterval);
+                }
+            }
+
+            showNotification(message, type = 'info') {
+                const notification = document.createElement('div');
+                notification.style.cssText = `
+                    position: fixed;
+                    top: 80px;
+                    right: 20px;
+                    padding: 15px 25px;
+                    border-radius: 10px;
+                    color: white;
+                    font-weight: bold;
+                    z-index: 10000;
+                    animation: slideIn 0.3s ease;
+                    max-width: 300px;
+                `;
+                
+                if (type === 'success') {
+                    notification.style.background = 'linear-gradient(45deg, #4CAF50, #45a049)';
+                } else if (type === 'error') {
+                    notification.style.background = 'linear-gradient(45deg, #f44336, #d32f2f)';
+                } else {
+                    notification.style.background = 'linear-gradient(45deg, #2196F3, #1976D2)';
+                }
+                
+                notification.textContent = message;
+                document.body.appendChild(notification);
+                
+                // Remove after 4 seconds
+                setTimeout(() => {
+                    notification.remove();
+                }, 4000);
+            }
+        }
+
+// ==================== MOBILE DATA DETECTION SYSTEM ====================
+
+(function() {
+    'use strict';
+    
+    let dataOverlay = null;
+    let isDataOverlayVisible = false;
+    let connectionCheckInterval = null;
+    let lastConnectionState = true;
+    
+    // Create the unique data connection overlay
+    function createDataConnectionOverlay() {
+        const overlay = document.createElement('div');
+        overlay.className = 'data-connection-overlay';
+        overlay.id = 'dataConnectionOverlay';
+        
+        overlay.innerHTML = `
+            <div class="connection-waves">
+                <div class="wave"></div>
+                <div class="wave"></div>
+                <div class="wave"></div>
+            </div>
+            
+            <div class="data-particles" id="dataParticles"></div>
+            
+            <div class="data-connection-container">
+                <div class="data-connection-icon">📡</div>
+                
+                <h1 class="data-connection-title">Connection Required</h1>
+                
+                <p class="data-connection-message">
+                    DreamArch requires an active mobile data connection to access our quantum architecture servers and AI processing systems.
+                </p>
+                
+                <div class="data-status-indicator">
+                    <div class="status-dot"></div>
+                    <div class="status-dot"></div>
+                    <div class="status-dot"></div>
+                    <span style="margin-left: 10px; color: #ff0000; font-weight: bold;">
+                        📶 Mobile Data: DISCONNECTED
+                    </span>
+                </div>
+                
+                <div class="data-connection-actions">
+                    <button class="data-refresh-btn" onclick="checkDataConnection()">
+                        🔄 Refresh Connection
+                    </button>
+                </div>
+                
+                <div class="data-tips">
+                    <h4>💡 Quick Solutions:</h4>
+                    <ul>
+                        <li>Turn on Mobile Data in your phone settings</li>
+                        <li>Check if you have sufficient data balance</li>
+                        <li>Try switching to a different network</li>
+                        <li>Restart your mobile data connection</li>
+                        <li>Move to an area with better signal strength</li>
+                    </ul>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(overlay);
+        
+        // Create floating particles
+        createDataParticles();
+        
+        return overlay;
+    }
+    
+    // Create floating particles for the overlay
+    function createDataParticles() {
+        const particlesContainer = document.getElementById('dataParticles');
+        if (!particlesContainer) return;
+        
+        for (let i = 0; i < 30; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'data-particle';
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.animationDelay = Math.random() * 10 + 's';
+            particle.style.animationDuration = (Math.random() * 5 + 8) + 's';
+            
+            // Random colors
+            const colors = ['#00ffff', '#ff00ff', '#ffff00'];
+            particle.style.background = colors[Math.floor(Math.random() * colors.length)];
+            
+            particlesContainer.appendChild(particle);
+        }
+    }
+    
+    // Advanced mobile data detection
+    function isMobileDataActive() {
+        return new Promise((resolve) => {
+            // Check if online
+            if (!navigator.onLine) {
+                resolve(false);
+                return;
+            }
+            
+            // Check connection type
+            if ('connection' in navigator) {
+                const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+                
+                if (connection) {
+                    // Check if it's a mobile connection
+                    const mobileTypes = ['cellular', '2g', '3g', '4g', '5g'];
+                    const isMobile = mobileTypes.includes(connection.effectiveType) || 
+                                   mobileTypes.includes(connection.type) ||
+                                   connection.type === 'cellular';
+                    
+                    resolve(isMobile);
+                    return;
+                }
+            }
+            
+            // Fallback: Test with a small network request
+            const startTime = Date.now();
+            const timeout = 3000; // 3 seconds timeout
+            
+            // Create a small test request
+            fetch('data:text/plain;base64,', {
+                method: 'HEAD',
+                cache: 'no-cache'
+            })
+            .then(() => {
+                const responseTime = Date.now() - startTime;
+                // If response is very fast, likely WiFi. If slower, likely mobile data
+                const isMobileData = responseTime > 100; // Adjust threshold as needed
+                resolve(isMobileData);
+            })
+            .catch(() => {
+                resolve(false);
+            });
+            
+            // Timeout fallback
+            setTimeout(() => resolve(false), timeout);
+        });
+    }
+    
+    // Show data connection overlay
+    function showDataOverlay() {
+        if (!dataOverlay) {
+            dataOverlay = createDataConnectionOverlay();
+        }
+        
+        if (!isDataOverlayVisible) {
+            dataOverlay.style.display = 'flex';
+            isDataOverlayVisible = true;
+            
+            // Send notification to owner
+            if (typeof sendNotificationToOwner === 'function') {
+                sendNotificationToOwner('data_connection_lost', {
+                    timestamp: new Date().toISOString(),
+                    userAgent: navigator.userAgent,
+                    url: window.location.href
+                });
+            }
+            
+            console.log('🔴 Mobile data connection required');
+        }
+    }
+    
+    // Hide data connection overlay
+    function hideDataOverlay() {
+        if (dataOverlay && isDataOverlayVisible) {
+            dataOverlay.style.display = 'none';
+            isDataOverlayVisible = false;
+            
+            // Send notification to owner
+            if (typeof sendNotificationToOwner === 'function') {
+                sendNotificationToOwner('data_connection_restored', {
+                    timestamp: new Date().toISOString(),
+                    userAgent: navigator.userAgent,
+                    url: window.location.href
+                });
+            }
+            
+            console.log('🟢 Mobile data connection restored');
+        }
+    }
+    
+    // Check data connection status
+    async function checkDataConnection() {
+        try {
+            const hasMobileData = await isMobileDataActive();
+            
+            if (hasMobileData && !lastConnectionState) {
+                // Connection restored
+                hideDataOverlay();
+                if (typeof showNotification === 'function') {
+                    showNotification('📶 Mobile data connection restored!', 'success');
+                }
+            } else if (!hasMobileData && lastConnectionState) {
+                // Connection lost
+                showDataOverlay();
+                if (typeof showNotification === 'function') {
+                    showNotification('📶 Mobile data required for DreamArch', 'warning');
+                }
+            }
+            
+            lastConnectionState = hasMobileData;
+            
+        } catch (error) {
+            console.log('Connection check error:', error);
+            // On error, assume no mobile data
+            if (lastConnectionState) {
+                showDataOverlay();
+                lastConnectionState = false;
+            }
+        }
+    }
+    
+    // Make checkDataConnection globally available
+    window.checkDataConnection = checkDataConnection;
+    
+    // Initialize connection monitoring
+    function initializeDataMonitoring() {
+        // Initial check
+        setTimeout(checkDataConnection, 2000);
+        
+        // Set up periodic checking
+        connectionCheckInterval = setInterval(checkDataConnection, 5000); // Check every 5 seconds
+        
+        // Listen for online/offline events
+        window.addEventListener('online', () => {
+            setTimeout(checkDataConnection, 1000);
+        });
+        
+        window.addEventListener('offline', () => {
+            showDataOverlay();
+            lastConnectionState = false;
+        });
+        
+        // Listen for connection changes
+        if ('connection' in navigator) {
+            const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+            if (connection) {
+                connection.addEventListener('change', () => {
+                    setTimeout(checkDataConnection, 1000);
+                });
+            }
+        }
+        
+        // Listen for visibility changes (user switching apps)
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                // Page became visible, check connection
+                setTimeout(checkDataConnection, 500);
+            }
+        });
+        
+        console.log('📡 Mobile data monitoring initialized');
+    }
+    
+    // Clean up function
+    function cleanup() {
+        if (connectionCheckInterval) {
+            clearInterval(connectionCheckInterval);
+        }
+    }
+    
+    // Initialize when page loads
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializeDataMonitoring);
+    } else {
+        initializeDataMonitoring();
+    }
+    
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', cleanup);
+    
+    // Add to global scope for debugging
+    window.dataConnectionSystem = {
+        check: checkDataConnection,
+        show: showDataOverlay,
+        hide: hideDataOverlay,
+        isVisible: () => isDataOverlayVisible
+    };
+    
+})();
+
+// ==================== ENHANCED MOBILE DATA DETECTION ====================
+
+// Additional mobile-specific detection
+function detectMobileDataAdvanced() {
+    return new Promise((resolve) => {
+        // Check if it's a mobile device first
+        const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        
+        if (!isMobileDevice) {
+            // If not mobile, assume it's okay (desktop/laptop)
+            resolve(true);
+            return;
+        }
+        
+        // For mobile devices, check connection
+        if ('connection' in navigator) {
+            const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+            
+            if (connection) {
+                // Check effective connection type
+                const mobileConnections = ['slow-2g', '2g', '3g', '4g'];
+                const isMobileConnection = mobileConnections.includes(connection.effectiveType) ||
+                                         connection.type === 'cellular';
+                
+                resolve(isMobileConnection);
+                return;
+            }
+        }
+        
+        // Fallback: Test network speed
+        const testImage = new Image();
+        const startTime = Date.now();
+        
+        testImage.onload = () => {
+            const loadTime = Date.now() - startTime;
+            // If load time is reasonable for mobile, assume mobile data
+            resolve(loadTime < 2000);
+        };
+        
+        testImage.onerror = () => {
+            resolve(false);
+        };
+        
+        // Use a small test image
+        testImage.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+        
+        // Timeout after 3 seconds
+        setTimeout(() => resolve(false), 3000);
+    });
+}
+
+// Enhanced notification system for data connection
+async function sendDataConnectionNotification(type, data) {
+    const notificationData = {
+        type: type,
+        data: data,
+        timestamp: new Date().toISOString(),
+        connectionInfo: {
+            online: navigator.onLine,
+            connection: navigator.connection ? {
+                effectiveType: navigator.connection.effectiveType,
+                type: navigator.connection.type,
+                downlink: navigator.connection.downlink,
+                rtt: navigator.connection.rtt
+            } : null
+        }
+    };
+    
+    if (typeof sendNotificationToOwner === 'function') {
+        await sendNotificationToOwner(type, notificationData);
+    }
+    
+    console.log('📡 Data connection event:', type, notificationData);
+}
+
+console.log('%c📡 Mobile Data Detection System Loaded', 'color: #00ffff; font-size: 14px; font-weight: bold;');
